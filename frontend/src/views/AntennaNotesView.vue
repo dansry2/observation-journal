@@ -72,7 +72,7 @@ const filteredAntennas = computed(() => {
 });
 
 async function loadRefs() {
-  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": "ak_5e013c70196a73ec479597dc68fa8b2b" } });
+  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
   antennas.value = (res.data.antennas || []).map(a => a.code);
 }
 

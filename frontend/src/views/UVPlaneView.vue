@@ -91,7 +91,7 @@ function filterAntennas(item, queryText) {
 }
 
 async function loadRefs() {
-  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": "ak_5e013c70196a73ec479597dc68fa8b2b" } });
+  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
   slots.value = (res.data.uv_slots || []).map(s => ({ title: s.time || s.slot_time, value: s.id }));
   statusList.value = (res.data.uv_statuses || []).map(s => s.text);
   antennaList.value = (res.data.antennas || []).map(a => a.code);
