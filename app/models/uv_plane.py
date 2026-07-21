@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean, Text
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import JournalBase as Base
 
 class UVPlaneDay(Base):
     __tablename__ = "uv_plane_days"
@@ -10,8 +10,8 @@ class UVPlaneDay(Base):
     version = Column(Integer, default=1)
     is_active = Column(Boolean, default=True)
     change_note = Column(Text, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    updated_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer)
+    updated_by = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

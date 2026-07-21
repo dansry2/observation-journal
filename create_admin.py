@@ -1,22 +1,23 @@
 import secrets
-from app.database import SessionLocal
+from app.database import UsersSessionLocal as SessionLocal
 from app.models.user import User, InvitationKey
 from app.utils.security import get_password_hash
+from app.config import settings
 from sqlalchemy.sql import func
 
 db = SessionLocal()
 
-admin = db.query(User).filter(User.username == "admin").first()
+admin = db.query(User).filter(User.username == settings.ADMIN_USERNAME).first()
 if not admin:
     admin = User(
-        username="admin",
-        password_hash=get_password_hash("admin"),
+        username=settings.ADMIN_USERNAME,
+        password_hash=get_password_hash(settings.ADMIN_PASSWORD),
         full_name="Администратор",
         role="admin"
     )
     db.add(admin)
     db.flush()
-    print("Админ создан: admin / admin")
+    print(f"Админ создан: {settings.ADMIN_USERNAME}")
 else:
     print("Админ уже существует")
 

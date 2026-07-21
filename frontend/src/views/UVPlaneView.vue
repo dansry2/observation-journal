@@ -58,6 +58,18 @@
       </v-card>
     </v-dialog>
   </div>
+
+    <v-dialog v-model="confirmDialog" max-width="500">
+      <v-card>
+        <v-card-title>Подтверждение</v-card-title>
+        <v-card-text>Вы изменяете существующие данные. Продолжить?</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="outlined" @click="confirmDialog = false; loadData()">Отмена</v-btn>
+          <v-btn color="primary" @click="doSave">Продолжить</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </template>
 
 <script setup>
@@ -72,6 +84,7 @@ const error = ref("");
 const success = ref("");
 const saving = ref(false);
 const showHistory = ref(false);
+const confirmDialog = ref(false);
 const info = ref({});
 const history = ref([]);
 const slots = ref([]);
@@ -98,8 +111,10 @@ async function loadRefs() {
 }
 
 async function loadData() {
+  entries.value = [{ antenna_code: "", status: "" }];
+  info.value = {};
   try {
-    const res = await axios.get(`/uv-plane/${selectedDate.value}/${selectedTime.value}`);
+    const res = await axios.get(`/uv/${selectedDate.value}/${selectedTime.value}`);
     const data = res.data;
     entries.value = data.entries.length > 0 ? data.entries.map(e => ({ ...e })) : [{ antenna_code: "", status: "" }];
     info.value = { created_by: data.created_by, version: data.version };
@@ -110,14 +125,41 @@ async function loadData() {
 }
 
 async function save() {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    error.value = "Войдите в систему, чтобы вносить изменения";
+    return;
+  }
+  const filtered = entries.value.filter(e => e.antenna_code);
+  
+  if (info.value.version) {
+    const check = await axios.post("/uv/check-conflicts", {
+      date: selectedDate.value, slot_id: selectedTime.value, entries: filtered
+    });
+    if (check.data.conflict) {
+      confirmDialog.value = true;
+      return;
+    }
+  }
+  await doSave();
+}
+
+async function doSave() {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    error.value = "Войдите в систему, чтобы вносить изменения";
+    return;
+  }
+  confirmDialog.value = false;
   saving.value = true;
   error.value = "";
   success.value = "";
   try {
-    await axios.post("/uv-plane/", {
+    const filtered = entries.value.filter(e => e.antenna_code);
+    await axios.post("/uv/", {
       date: selectedDate.value,
       slot_id: selectedTime.value,
-      entries: entries.value.filter(e => e.antenna_code),
+      entries: filtered,
       change_note: changeNote.value || "Обновление"
     });
     success.value = "Сохранено!";
@@ -129,12 +171,13 @@ async function save() {
 
 async function loadHistory() {
   try {
-    const res = await axios.get(`/uv-plane/${selectedDate.value}/${selectedTime.value}/history`);
+    const res = await axios.get(`/uv/${selectedDate.value}/${selectedTime.value}/history`);
     history.value = res.data.versions || [];
   } catch (e) { history.value = []; }
 }
 
 watch(showHistory, (val) => { if (val) loadHistory(); });
+watch(selectedTime, () => { loadData(); });
 
 onMounted(async () => {
   await loadRefs();

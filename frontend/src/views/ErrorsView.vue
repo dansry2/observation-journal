@@ -4,27 +4,28 @@
       <h1 class="text-h4">Журнал ошибок антенн</h1>
       <v-spacer />
       <v-text-field v-model="selectedDate" type="date" label="Дата" variant="outlined" density="compact" style="max-width: 200px" class="mr-2" @change="loadData" />
-      <v-select v-model="selectedGrid" :items="grids" item-title="name" item-value="id" label="Решётка" variant="outlined" density="compact" style="max-width: 200px" @change="loadData" />
+      <v-select v-model="selectedGrid" :items="grids" item-title="name" item-value="id" label="Диапазон" variant="outlined" density="compact" style="max-width: 200px" @change="loadData" />
     </div>
 
     <v-alert v-if="error" type="error" closable class="mb-4">{{ error }}</v-alert>
     <v-alert v-if="success" type="success" closable class="mb-4">{{ success }}</v-alert>
 
     <v-card class="mb-4">
-      <v-card-title>Ошибки</v-card-title>
+      <v-card-title>Антенны</v-card-title>
       <v-card-text>
         <div v-for="(entry, idx) in entries" :key="idx" class="d-flex align-center ga-2 mb-2">
-          <v-combobox v-model="entry.antenna_code" :items="antennaList" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
+          <v-combobox v-model="entry.antenna_code" :items="antennaList" :custom-filter="filterAntennas" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
           <v-text-field v-model="entry.error_description" label="Описание ошибки" density="compact" variant="outlined" hide-details />
+          <v-checkbox v-model="entry.is_broken" label="Сломана" density="compact" hide-details class="ml-2" />
           <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entries.splice(idx, 1)" />
         </div>
-        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '' })">
-          <v-icon class="mr-2">mdi-plus</v-icon> Добавить
+        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '', is_broken: false })">
+          <v-icon class="mr-2">mdi-plus</v-icon> Добавить антенну
         </v-btn>
       </v-card-text>
     </v-card>
 
-    <v-text-field v-model="changeNote" label="Примечание к изменению" variant="outlined" hide-details class="mb-4" />
+    <v-text-field v-model="changeNote" label="Примечание к диапазону" variant="outlined" hide-details class="mb-4" hint="Общее примечание ко всем антеннам данного диапазона на эту дату" persistent-hint />
 
     <div v-if="info.created_by" class="mb-2 text-body-2">Создал: {{ info.created_by }} | Версия: {{ info.version }}</div>
 
@@ -57,7 +58,7 @@ import axios from "axios";
 
 const selectedDate = ref(new Date().toISOString().substr(0, 10));
 const selectedGrid = ref(5);
-const entries = ref([{ antenna_code: "", error_description: "" }]);
+const entries = ref([{ antenna_code: "", error_description: "", is_broken: false }]);
 const changeNote = ref("");
 const error = ref("");
 const success = ref("");
@@ -68,6 +69,18 @@ const history = ref([]);
 const grids = ref([]);
 const antennaList = ref([]);
 
+function transliterate(text) {
+  const map = {'Е':'E','е':'e','С':'C','с':'c','А':'A','а':'a','Т':'T','т':'t','Р':'P','р':'p','О':'O','о':'o','Н':'H','н':'h','М':'M','м':'m','К':'K','к':'k','Х':'X','х':'x','В':'B','в':'b'};
+  return text.split('').map(ch => map[ch] || ch).join('');
+}
+
+function filterAntennas(item, queryText) {
+  if (!queryText) return true;
+  const q = transliterate(queryText).toUpperCase();
+  const code = transliterate(typeof item === 'object' ? (item.title || item || '') : (item || '')).toUpperCase();
+  return code.includes(q);
+}
+
 async function loadRefs() {
   const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
   grids.value = res.data.equipment_ranges || [];
@@ -75,22 +88,45 @@ async function loadRefs() {
 }
 
 async function loadData() {
+  entries.value = [{ antenna_code: "", error_description: "", is_broken: false }];
+  info.value = {};
+  error.value = "";
+  success.value = "";
   try {
-    const res = await axios.get(`/errors/${selectedDate.value}/${selectedGrid.value}`);
-    entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "" }];
+    const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}`);
+    entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "", is_broken: false }];
     info.value = { created_by: res.data.created_by, version: res.data.version };
-  } catch (e) {
-    entries.value = [{ antenna_code: "", error_description: "" }];
-    info.value = {};
-  }
+  } catch (e) {}
 }
 
 async function save() {
+  const token = localStorage.getItem("access_token");
+  if (!token) {
+    error.value = "Войдите в систему, чтобы вносить изменения";
+    return;
+  }
+
+  const filtered = entries.value.filter(e => e.antenna_code);
+
+  if (info.value.version) {
+    const check = await axios.post("/errors-grid/check-conflicts", {
+      date: selectedDate.value, grid_id: selectedGrid.value, entries: filtered
+    });
+    if (check.data.conflict) {
+      confirmDialog.value = true;
+      return;
+    }
+  }
+  await doSave();
+}
+
+async function doSave() {
   saving.value = true;
   try {
-    await axios.post("/errors/", {
+    const filtered = entries.value.filter(e => e.antenna_code);
+    await axios.post("/errors-grid/", {
       date: selectedDate.value, grid_id: selectedGrid.value,
-      entries: entries.value.filter(e => e.antenna_code),
+      entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_broken: e.is_broken })),
       change_note: changeNote.value || "Обновление"
     });
     success.value = "Сохранено!";
@@ -102,12 +138,13 @@ async function save() {
 
 async function loadHistory() {
   try {
-    const res = await axios.get(`/errors/${selectedDate.value}/${selectedGrid.value}/history`);
+    const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}/history`);
     history.value = res.data.versions || [];
   } catch (e) { history.value = []; }
 }
 
 watch(showHistory, (val) => { if (val) loadHistory(); });
+watch(selectedGrid, () => { loadData(); });
 
 onMounted(async () => {
   await loadRefs();

@@ -1,7 +1,7 @@
 import sys
 sys.path.insert(0, '.')
 import secrets
-from app.database import SessionLocal
+from app.database import UsersSessionLocal as SessionLocal
 from app.models.api_key import ApiKey
 from app.models.user import User
 from app.utils.security import get_password_hash

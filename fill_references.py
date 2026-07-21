@@ -2,7 +2,7 @@
 import sys
 sys.path.insert(0, '.')
 
-from app.database import SessionLocal, engine, Base
+from app.database import JournalSessionLocal as SessionLocal, journal_engine as engine, JournalBase as Base
 from app.models import *
 
 Base.metadata.create_all(bind=engine)

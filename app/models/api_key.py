@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import UsersBase
 
-class ApiKey(Base):
+class ApiKey(UsersBase):
     __tablename__ = "api_keys"
     id = Column(Integer, primary_key=True, index=True)
     key_hash = Column(String(255), nullable=False, unique=True)

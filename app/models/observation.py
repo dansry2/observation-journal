@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Date, Text, DateTime, ForeignKey, Boolean
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import JournalBase as Base
 
 class ObservationDay(Base):
     __tablename__ = "observation_days"
@@ -10,8 +10,8 @@ class ObservationDay(Base):
     is_active = Column(Boolean, default=True)
     duty_custom = Column(Text, nullable=True)
     change_note = Column(Text, nullable=True)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    updated_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer)
+    updated_by = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
@@ -36,4 +36,4 @@ class ObservationDuty(Base):
     __tablename__ = "observation_duty"
     id = Column(Integer, primary_key=True, index=True)
     observation_day_id = Column(Integer, ForeignKey("observation_days.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, nullable=False)

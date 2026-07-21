@@ -13,12 +13,12 @@ export const useAuthStore = defineStore("auth", {
       localStorage.setItem("access_token", this.token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
     },
-    async register(username, password, full_name, invitation_key) {
+    async register(username, password, full_name, ) {
       const res = await axios.post("/auth/register", {
         username,
         password,
         full_name,
-        invitation_key,
+        
       });
       this.token = res.data.access_token;
       localStorage.setItem("access_token", this.token);

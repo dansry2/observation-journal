@@ -3,5 +3,6 @@ from .reference import WeatherType, FrequencyRange, Antenna, EquipmentRange, UVS
 from .observation import ObservationDay, HourlyWeather, EquipmentLog, ObservationDuty
 from .uv_plane import UVPlaneDay, UVPlaneEntry
 from .error_log import ErrorLogDay, ErrorLogEntry
+from .movement import MovementDay, MovementEntry
 from .other_tables import ComponentMovement, AntennaNote, DailyNote
 from .api_key import ApiKey

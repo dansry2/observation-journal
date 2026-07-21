@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, Text, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import JournalBase as Base
 
 class ComponentMovement(Base):
     __tablename__ = "component_movements"
@@ -10,7 +10,7 @@ class ComponentMovement(Base):
     from_antenna = Column(String(10), ForeignKey("antennas.code"), nullable=True)
     to_antenna = Column(String(10), ForeignKey("antennas.code"), nullable=True)
     note = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     __table_args__ = (CheckConstraint("from_antenna IS NOT NULL OR to_antenna IS NOT NULL"),)
 
@@ -20,8 +20,8 @@ class AntennaNote(Base):
     date = Column(Date, nullable=False)
     antenna_code = Column(String(10), ForeignKey("antennas.code"), nullable=False)
     note = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
-    updated_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer)
+    updated_by = Column(Integer)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
     __table_args__ = (UniqueConstraint("date", "antenna_code"),)
@@ -32,5 +32,5 @@ class DailyNote(Base):
     date = Column(Date, nullable=False)
     title = Column(String(200))
     description = Column(Text)
-    created_by = Column(Integer, ForeignKey("users.id"))
+    created_by = Column(Integer)
     created_at = Column(DateTime, default=func.now())

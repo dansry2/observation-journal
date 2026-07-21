@@ -2,23 +2,22 @@ from pydantic import BaseModel
 from datetime import date
 from typing import Optional
 
-class ErrorEntryItem(BaseModel):
-    antenna_code: str
-    error_description: Optional[str] = None
-    is_broken: bool = False
+class MovementItem(BaseModel):
+    component_name: str
+    from_antenna: Optional[str] = None
+    to_antenna: Optional[str] = None
+    note: Optional[str] = None
 
-class ErrorLogCreate(BaseModel):
+class MovementCreate(BaseModel):
     date: date
-    grid_id: int
-    entries: list[ErrorEntryItem]
+    movements: list[MovementItem]
     change_note: Optional[str] = None
 
-class ErrorLogResponse(BaseModel):
+class MovementResponse(BaseModel):
     id: int
     date: date
-    grid_id: int
     version: int
-    entries: list[ErrorEntryItem]
+    movements: list[MovementItem]
     created_by: Optional[str] = None
     updated_by: Optional[str] = None
     created_at: Optional[str] = None
@@ -26,10 +25,9 @@ class ErrorLogResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ErrorLogBrief(BaseModel):
+class MovementBrief(BaseModel):
     id: int
     date: date
-    grid_id: int
     version: int
     is_active: bool
     created_by: Optional[str] = None
@@ -39,9 +37,8 @@ class ErrorLogBrief(BaseModel):
     class Config:
         from_attributes = True
 
-class ErrorLogHistory(BaseModel):
+class MovementHistory(BaseModel):
     date: date
-    grid_id: int
-    versions: list[ErrorLogBrief]
+    versions: list[MovementBrief]
     class Config:
         from_attributes = True

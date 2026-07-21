@@ -1,10 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from ..database import Base
+from ..database import UsersBase
 
-class User(Base):
+class User(UsersBase):
     __tablename__ = "users"
-
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(50), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
@@ -13,9 +12,8 @@ class User(Base):
     role = Column(String(20), default="user")
     created_at = Column(DateTime, default=func.now())
 
-class InvitationKey(Base):
+class InvitationKey(UsersBase):
     __tablename__ = "invitation_keys"
-
     id = Column(Integer, primary_key=True, index=True)
     key_code = Column(String(20), unique=True, nullable=False, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=True)

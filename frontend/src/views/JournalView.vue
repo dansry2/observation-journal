@@ -45,7 +45,7 @@
         <v-card-title class="d-flex align-center">Дежурные <v-spacer /><v-chip v-if="dutyUserIds.length > 0 || dutyCustom" color="success" size="small" variant="tonal">Заполнено</v-chip><v-chip v-else color="warning" size="small" variant="tonal">Не заполнено</v-chip></v-card-title>
         <v-card-text>
           <v-select v-model="dutyUserIds" :items="users" item-title="full_name" item-value="id" label="Дежурные (из зарегистрированных)" multiple chips variant="outlined" />
-          <v-text-field v-model="dutyCustom" label="Дополнительные дежурные (через запятую)" variant="outlined" hide-details class="mt-2" placeholder="Например: Иванов, Петров" />
+          <v-text-field v-model="dutyCustom" label="Дополнительные дежурные (через запятую)" variant="outlined" hide-details class="mt-2" placeholder="Иванов, Петров" />
         </v-card-text>
       </v-card>
 
@@ -74,6 +74,18 @@
         <v-card-actions><v-spacer /><v-btn @click="showHistory = false">Закрыть</v-btn></v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="confirmDialog" max-width="500">
+      <v-card>
+        <v-card-title>Подтверждение</v-card-title>
+        <v-card-text>Вы вносите изменения в уже существующие данные (версия {{ info.version }}). Продолжить?</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="outlined" @click="confirmDialog = false; loadData()">Отмена</v-btn>
+          <v-btn color="primary" @click="doSave">Продолжить</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -88,6 +100,7 @@ const ready = ref(false);
 const error = ref("");
 const success = ref("");
 const showHistory = ref(false);
+const confirmDialog = ref(false);
 const weather = ref({});
 const equipment = ref({});
 const dutyUserIds = ref([]);
@@ -112,17 +125,17 @@ function initEmpty() {
   info.value = {};
 }
 
-async function loadRefs() {
-  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
-  weatherTypes.value = res.data.weather_types || [];
-  equipmentRanges.value = res.data.equipment_ranges || [];
-}
-
 async function loadUsers() {
   try {
-    const res = await axios.get("/users");
+    const res = await axios.get("/users/");
     users.value = res.data || [];
   } catch (e) {}
+}
+
+async function loadRefs() {
+  const res = await axios.get("/api/v1/references");
+  weatherTypes.value = res.data.weather_types || [];
+  equipmentRanges.value = res.data.equipment_ranges || [];
 }
 
 async function loadData() {
@@ -143,6 +156,21 @@ async function loadData() {
 }
 
 async function save() {
+  const token = localStorage.getItem("access_token");
+  if (!token) { error.value = "Войдите в систему, чтобы вносить изменения"; return; }
+
+  const wl = Object.values(weather.value).filter(w => w.temperature !== null || w.weather_type_id !== null);
+  const el = Object.values(equipment.value).filter(e => e.time_start || e.time_stop || e.note);
+
+  if (info.value.version) {
+    const check = await axios.post("/observations/check-conflicts", { date: selectedDate.value, weather: wl, equipment: el });
+    if (check.data.conflict) { confirmDialog.value = true; return; }
+  }
+  await doSave();
+}
+
+async function doSave() {
+  confirmDialog.value = false;
   saving.value = true;
   error.value = "";
   success.value = "";
@@ -150,25 +178,19 @@ async function save() {
   const el = Object.values(equipment.value).filter(e => e.time_start || e.time_stop || e.note);
   try {
     await axios.post("/observations/", {
-      date: selectedDate.value,
-      weather: wl,
-      equipment: el,
-      duty_user_ids: dutyUserIds.value,
-      duty_custom: dutyCustom.value,
+      date: selectedDate.value, weather: wl, equipment: el,
+      duty_user_ids: dutyUserIds.value, duty_custom: dutyCustom.value,
       change_note: changeNote.value || "Обновление"
     });
     success.value = "Сохранено!";
     await loadData();
-  } catch (e) {
-    error.value = e.response?.data?.detail || "Ошибка сохранения";
-  } finally { saving.value = false; }
+  } catch (e) { error.value = e.response?.data?.detail || "Ошибка сохранения"; }
+  finally { saving.value = false; }
 }
 
 async function loadHistory() {
-  try {
-    const res = await axios.get(`/observations/${selectedDate.value}/history`);
-    history.value = res.data.versions || [];
-  } catch (e) { history.value = []; }
+  const res = await axios.get(`/observations/${selectedDate.value}/history`);
+  history.value = res.data.versions || [];
 }
 
 const weatherFilled = computed(() => Object.values(weather.value).some(w => w.temperature !== null || w.weather_type_id !== null));

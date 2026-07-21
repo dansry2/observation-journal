@@ -1,14 +1,14 @@
 from fastapi import Security, HTTPException, status
 from fastapi.security import APIKeyHeader
 from passlib.context import CryptContext
+from ..database import UsersSessionLocal
 from ..models.api_key import ApiKey
 
 api_key_header = APIKeyHeader(name="X-API-Key")
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_api_key(api_key: str = Security(api_key_header)):
-    from ..database import SessionLocal
-    db = SessionLocal()
+    db = UsersSessionLocal()
     try:
         keys = db.query(ApiKey).filter(ApiKey.is_active == True).all()
         for k in keys:
