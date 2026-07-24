@@ -48,6 +48,7 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
 
     day = ErrorLogDay(
         date=data.date, grid_id=data.grid_id, version=new_version,
+        is_broken=data.is_broken,
         is_active=True, change_note=data.change_note,
         created_by=current_user.id, updated_by=current_user.id
     )
@@ -110,6 +111,7 @@ def _build_response(day, db):
     updater_name = get_user_name(day.updated_by)
     return {
         "id": day.id, "date": day.date, "grid_id": day.grid_id, "version": day.version,
+        "is_broken": day.is_broken,
         "entries": [{"antenna_code": e.antenna_code, "error_description": e.error_description, "is_broken": e.is_broken} for e in entries],
         "created_by": creator_name,
         "updated_by": updater_name,

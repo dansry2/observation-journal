@@ -9,6 +9,7 @@ class ErrorLogDay(Base):
     grid_id = Column(Integer, ForeignKey("equipment_ranges.id"), nullable=False)
     version = Column(Integer, default=1)
     is_active = Column(Boolean, default=True)
+    is_broken = Column(Boolean, default=False)
     change_note = Column(Text, nullable=True)
     created_by = Column(Integer)
     updated_by = Column(Integer)

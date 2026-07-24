@@ -3,9 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 from ..database import get_db
 from ..models.observation import ObservationDay, HourlyWeather, EquipmentLog, ObservationDuty
-from ..models.uv_plane import UVPlaneDay, UVPlaneEntry
 from ..models.error_log import ErrorLogDay, ErrorLogEntry
-from ..models.other_tables import ComponentMovement, AntennaNote, DailyNote
 from ..models.reference import Antenna, WeatherType, EquipmentRange, UVSlot, UVStatus, FrequencyRange
 
 router = APIRouter(prefix="/api/v1", tags=["external-api"])
@@ -23,18 +21,6 @@ def api_observations(date_from: date = Query(...), date_to: date = Query(...), d
     return result
 
 @router.get("/uv-plane")
-def api_uv_plane(date_from: date = Query(...), date_to: date = Query(...), db: Session = Depends(get_db)):
-    entries = db.query(UVPlaneDay).filter(UVPlaneDay.date >= date_from, UVPlaneDay.date <= date_to, UVPlaneDay.is_active == True).order_by(UVPlaneDay.date, UVPlaneDay.slot_id).all()
-    result = {}
-    for day in entries:
-        ents = db.query(UVPlaneEntry).filter(UVPlaneEntry.uv_plane_day_id == day.id).all()
-        key = f"{day.date}_{day.slot_id}"
-        if key not in result:
-            result[key] = {"date": str(day.date), "slot_id": day.slot_id, "entries": []}
-        for e in ents:
-            result[key]["entries"].append({"antenna": e.antenna_code, "status": e.status})
-    return list(result.values())
-
 @router.get("/errors")
 def api_errors(date_from: date = Query(...), date_to: date = Query(...), db: Session = Depends(get_db)):
     entries = db.query(ErrorLogDay).filter(ErrorLogDay.date >= date_from, ErrorLogDay.date <= date_to, ErrorLogDay.is_active == True).order_by(ErrorLogDay.date, ErrorLogDay.grid_id).all()

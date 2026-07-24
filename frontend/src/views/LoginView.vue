@@ -15,8 +15,7 @@
               </v-text-field>
               <v-btn type="submit" color="primary" block size="large" :loading="loading">Войти</v-btn>
             </v-form>
-            <v-divider class="my-4" />
-            <v-btn variant="text" block @click="$router.push('/register')">Регистрация</v-btn>
+            
             <v-alert v-if="error" type="error" class="mt-4" closable>{{ error }}</v-alert>
           </v-card>
         </v-col>

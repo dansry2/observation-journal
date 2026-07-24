@@ -11,7 +11,7 @@
     <v-alert v-if="success" type="success" closable class="mb-4">{{ success }}</v-alert>
 
     <v-card class="mb-4">
-      <v-card-title>Антенны</v-card-title>
+      <v-card-title class="d-flex align-center">Антенны <v-spacer /><v-checkbox v-model="isBroken" label="Диапазон сломан" density="compact" hide-details color="error" class="ml-4" /></v-card-title>
       <v-card-text>
         <div v-for="(entry, idx) in entries" :key="idx" class="d-flex align-center ga-2 mb-2">
           <v-combobox v-model="entry.antenna_code" :items="antennaList" :custom-filter="filterAntennas" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
@@ -60,6 +60,7 @@ const selectedDate = ref(new Date().toISOString().substr(0, 10));
 const selectedGrid = ref(5);
 const entries = ref([{ antenna_code: "", error_description: "", is_broken: false }]);
 const changeNote = ref("");
+const isBroken = ref(false);
 const error = ref("");
 const success = ref("");
 const saving = ref(false);
@@ -90,12 +91,14 @@ async function loadRefs() {
 async function loadData() {
   entries.value = [{ antenna_code: "", error_description: "", is_broken: false }];
   info.value = {};
+  isBroken.value = false;
   error.value = "";
   success.value = "";
   try {
     const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}`);
     entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "", is_broken: false }];
     info.value = { created_by: res.data.created_by, version: res.data.version };
+    isBroken.value = res.data.is_broken || false;
   } catch (e) {}
 }
 
@@ -127,7 +130,7 @@ async function doSave() {
     await axios.post("/errors-grid/", {
       date: selectedDate.value, grid_id: selectedGrid.value,
       entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_broken: e.is_broken })),
-      change_note: changeNote.value || "Обновление"
+      change_note: changeNote.value || "Обновление", is_broken: isBroken.value
     });
     success.value = "Сохранено!";
     await loadData();

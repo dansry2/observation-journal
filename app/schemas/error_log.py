@@ -12,6 +12,7 @@ class ErrorLogCreate(BaseModel):
     grid_id: int
     entries: list[ErrorEntryItem]
     change_note: Optional[str] = None
+    is_broken: bool = False
 
 class ErrorLogResponse(BaseModel):
     id: int
@@ -23,6 +24,7 @@ class ErrorLogResponse(BaseModel):
     updated_by: Optional[str] = None
     created_at: Optional[str] = None
     change_note: Optional[str] = None
+    is_broken: bool = False
     class Config:
         from_attributes = True
 

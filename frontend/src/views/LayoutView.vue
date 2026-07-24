@@ -3,12 +3,10 @@
     <v-list density="compact" nav>
       <v-list-item prepend-icon="mdi-notebook-edit" title="Журнал" value="journal" to="/journal" />
       <v-list-item prepend-icon="mdi-alert-circle" title="Ошибки" value="errors" to="/errors" />
-      <v-list-item prepend-icon="mdi-swap-horizontal" title="Перемещения" value="movements" to="/movements" />
       <v-list-item prepend-icon="mdi-contacts" title="Контакты" value="contacts" to="/contacts" />
       <v-divider class="my-2" />
       <v-list-item v-if="auth.token && isAdmin" prepend-icon="mdi-backup-restore" title="Бэкапы" value="admin" to="/admin/keys" />
       <v-divider class="my-2" />
-      <v-list-item v-if="!auth.token" prepend-icon="mdi-login" title="Войти" to="/login" />
       <v-list-item v-if="auth.token" prepend-icon="mdi-logout" title="Выход" @click="logout" />
     </v-list>
   </v-navigation-drawer>
