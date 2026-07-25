@@ -29,9 +29,9 @@ def api_errors(date_from: date = Query(...), date_to: date = Query(...), db: Ses
         ents = db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == day.id).all()
         key = f"{day.date}_{day.grid_id}"
         if key not in result:
-            result[key] = {"date": str(day.date), "grid_id": day.grid_id, "entries": []}
+            result[key] = {"date": str(day.date), "grid_id": day.grid_id, "entries": [], "is_broken": day.is_broken}
         for e in ents:
-            result[key]["entries"].append({"antenna": e.antenna_code, "error": e.error_description})
+            result[key]["entries"].append({"antenna": e.antenna_code, "error": e.error_description, "is_broken": e.is_broken})
     return list(result.values())
 
 @router.get("/movements")

@@ -50,6 +50,18 @@
       </v-card>
     </v-dialog>
   </div>
+
+    <v-dialog v-model="confirmDialog" max-width="500">
+      <v-card>
+        <v-card-title>Подтверждение</v-card-title>
+        <v-card-text>Вы изменяете существующие данные. Продолжить?</v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="outlined" @click="confirmDialog = false; loadData()">Отмена</v-btn>
+          <v-btn color="primary" @click="doSave">Продолжить</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 </template>
 
 <script setup>
@@ -65,6 +77,7 @@ const error = ref("");
 const success = ref("");
 const saving = ref(false);
 const showHistory = ref(false);
+const confirmDialog = ref(false);
 const info = ref({});
 const history = ref([]);
 const grids = ref([]);
@@ -124,6 +137,7 @@ async function save() {
 }
 
 async function doSave() {
+  confirmDialog.value = false;
   saving.value = true;
   try {
     const filtered = entries.value.filter(e => e.antenna_code);
