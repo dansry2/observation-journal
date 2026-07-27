@@ -9,6 +9,6 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     ADMIN_USERNAME: str = "admin"
-    ADMIN_PASSWORD: str = "change_me"
+    ADMIN_PASSWORD: str = ""
 
 settings = Settings()
