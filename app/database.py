@@ -33,7 +33,7 @@ def get_users_db():
     finally:
         db.close()
 
-# Хелпер: достать пользователя по id
+# достать пользователя по id
 def get_user_by_id(user_id: int):
     db = UsersSessionLocal()
     try:
