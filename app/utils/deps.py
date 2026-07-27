@@ -19,16 +19,24 @@ def get_current_user(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id: int = payload.get("id")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Неверный токен")
+        role: str = payload.get("role")
+        username: str = payload.get("sub")
     except JWTError:
         raise HTTPException(status_code=401, detail="Неверный токен")
+    
+    # Админ — не из базы
+    if role == "admin":
+        return type('User', (), {
+            'id': 0, 'username': username, 'role': 'admin',
+            'full_name': 'Администратор'
+        })()
+    
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
     return user
 
-def get_active_user(current_user: User = Depends(get_current_user)) -> User:
+def get_active_user(current_user = Depends(get_current_user)):
     if current_user.role == "viewer":
         raise HTTPException(status_code=403, detail="Только для чтения")
     return current_user
@@ -40,11 +48,6 @@ def get_optional_user(
     if credentials is None:
         return None
     try:
-        token = credentials.credentials
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        user_id: int = payload.get("id")
-        if user_id is None:
-            return None
-        return db.query(User).filter(User.id == user_id).first()
+        return get_current_user(credentials, db)
     except:
         return None

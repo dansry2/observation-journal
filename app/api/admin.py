@@ -14,7 +14,7 @@ class CreateUserRequest(BaseModel):
     full_name: str
 
 @router.post("/users")
-def create_user(data: CreateUserRequest, db: Session = Depends(get_users_db), current_user: User = Depends(get_current_user)):
+def create_user(data: CreateUserRequest, db: Session = Depends(get_users_db), current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Только для админа")
     if db.query(User).filter(User.username == data.username).first():
@@ -30,14 +30,12 @@ def create_user(data: CreateUserRequest, db: Session = Depends(get_users_db), cu
     return {"message": f"Пользователь {data.username} создан"}
 
 @router.delete("/users/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_users_db), current_user: User = Depends(get_current_user)):
+def delete_user(user_id: int, db: Session = Depends(get_users_db), current_user = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Только для админа")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
-    if user.role == "admin":
-        raise HTTPException(status_code=400, detail="Нельзя удалить админа")
     db.delete(user)
     db.commit()
     return {"message": "Пользователь удалён"}
