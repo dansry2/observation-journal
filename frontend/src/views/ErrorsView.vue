@@ -11,15 +11,15 @@
     <v-alert v-if="success" type="success" closable class="mb-4">{{ success }}</v-alert>
 
     <v-card class="mb-4">
-      <v-card-title class="d-flex align-center">Антенны <v-spacer /><v-checkbox v-model="isBroken" label="Диапазон сломан" density="compact" hide-details color="error" class="ml-4" /></v-card-title>
+      <v-card-title class="d-flex align-center">Антенны <v-spacer /><v-checkbox v-model="isOk" label="Диапазон исправен" density="compact" hide-details color="error" class="ml-4" /></v-card-title>
       <v-card-text>
         <div v-for="(entry, idx) in entries" :key="idx" class="d-flex align-center ga-2 mb-2">
           <v-combobox v-model="entry.antenna_code" :items="antennaList" :custom-filter="filterAntennas" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
           <v-text-field v-model="entry.error_description" label="Описание ошибки" density="compact" variant="outlined" hide-details />
-          <v-checkbox v-model="entry.is_broken" label="Сломана" density="compact" hide-details class="ml-2" />
+          <v-checkbox v-model="entry.is_ok" label="Исправна" density="compact" hide-details class="ml-2" />
           <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entries.splice(idx, 1)" />
         </div>
-        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '', is_broken: false })">
+        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '', is_ok: true })">
           <v-icon class="mr-2">mdi-plus</v-icon> Добавить антенну
         </v-btn>
       </v-card-text>
@@ -70,9 +70,9 @@ import axios from "axios";
 
 const selectedDate = ref(new Date().toISOString().substr(0, 10));
 const selectedGrid = ref(5);
-const entries = ref([{ antenna_code: "", error_description: "", is_broken: false }]);
+const entries = ref([{ antenna_code: "", error_description: "", is_ok: true }]);
 const changeNote = ref("");
-const isBroken = ref(false);
+const isOk = ref(true);
 const error = ref("");
 const success = ref("");
 const saving = ref(false);
@@ -102,16 +102,16 @@ async function loadRefs() {
 }
 
 async function loadData() {
-  entries.value = [{ antenna_code: "", error_description: "", is_broken: false }];
+  entries.value = [{ antenna_code: "", error_description: "", is_ok: true }];
   info.value = {};
-  isBroken.value = false;
+  isOk.value = true;
   error.value = "";
   success.value = "";
   try {
     const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}`);
-    entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "", is_broken: false }];
+    entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "", is_ok: true }];
     info.value = { created_by: res.data.created_by, version: res.data.version };
-    isBroken.value = res.data.is_broken || false;
+    isOk.value = res.data.is_ok !== false;
   } catch (e) {}
 }
 
@@ -143,8 +143,8 @@ async function doSave() {
     const filtered = entries.value.filter(e => e.antenna_code);
     await axios.post("/errors-grid/", {
       date: selectedDate.value, grid_id: selectedGrid.value,
-      entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_broken: e.is_broken })),
-      change_note: changeNote.value || "Обновление", is_broken: isBroken.value
+      entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_ok: e.is_ok })),
+      change_note: changeNote.value || "Обновление", is_ok: isOk.value
     });
     success.value = "Сохранено!";
     await loadData();
