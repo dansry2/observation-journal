@@ -10,5 +10,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = ""
+    SUBPATH: str = ""
 
 settings = Settings()

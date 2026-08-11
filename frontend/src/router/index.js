@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from "vue-router";
 
+const BASE_URL = document.querySelector('base')?.getAttribute('href') || '/';
+
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory(BASE_URL),
   routes: [
     { path: "/login", name: "login", component: () => import("../views/LoginView.vue") },
     {
@@ -21,7 +23,6 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("access_token");
-  // Все страницы кроме логина требуют авторизацию
   if (to.path !== "/login" && !token) {
     next("/login");
   } else {

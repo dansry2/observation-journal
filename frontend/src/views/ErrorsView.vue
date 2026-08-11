@@ -15,7 +15,7 @@
       <v-card-text>
         <div v-for="(entry, idx) in entries" :key="idx" class="d-flex align-center ga-2 mb-2">
           <v-combobox v-model="entry.antenna_code" :items="antennaList" :custom-filter="filterAntennas" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
-          <v-text-field v-model="entry.error_description" label="Описание ошибки" density="compact" variant="outlined" hide-details />
+          <v-text-field v-model="entry.error_description" label="Заметка" density="compact" variant="outlined" hide-details />
           <v-checkbox v-model="entry.is_ok" label="Исправна" density="compact" hide-details class="ml-2" />
           <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entries.splice(idx, 1)" />
         </div>
