@@ -8,13 +8,13 @@ export const useAuthStore = defineStore("auth", {
   }),
   actions: {
     async login(username, password) {
-      const res = await axios.post("/auth/login", { username, password });
+      const res = await axios.post("auth/login", { username, password });
       this.token = res.data.access_token;
       localStorage.setItem("access_token", this.token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${this.token}`;
     },
     async register(username, password, full_name, ) {
-      const res = await axios.post("/auth/register", {
+      const res = await axios.post("auth/register", {
         username,
         password,
         full_name,

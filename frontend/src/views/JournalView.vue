@@ -127,13 +127,13 @@ function initEmpty() {
 
 async function loadUsers() {
   try {
-    const res = await axios.get("/users/");
+    const res = await axios.get("users/");
     users.value = res.data || [];
   } catch (e) {}
 }
 
 async function loadRefs() {
-  const res = await axios.get("/api/v1/references");
+  const res = await axios.get("api/v1/references");
   weatherTypes.value = res.data.weather_types || [];
   equipmentRanges.value = res.data.equipment_ranges || [];
 }
@@ -143,7 +143,7 @@ async function loadData() {
   error.value = "";
   initEmpty();
   try {
-    const res = await axios.get(`/observations/${selectedDate.value}`);
+    const res = await axios.get(`observations/${selectedDate.value}`);
     const data = res.data;
     info.value = { created_by: data.created_by, updated_by: data.updated_by, version: data.version };
     for (const w of data.weather || []) weather.value[w.hour] = { hour: w.hour, temperature: w.temperature, weather_type_id: w.weather_type_id };
@@ -163,7 +163,7 @@ async function save() {
   const el = Object.values(equipment.value).filter(e => e.time_start || e.time_stop || e.note);
 
   if (info.value.version) {
-    const check = await axios.post("/observations/check-conflicts", { date: selectedDate.value, weather: wl, equipment: el });
+    const check = await axios.post("observations/check-conflicts", { date: selectedDate.value, weather: wl, equipment: el });
     if (check.data.conflict) { confirmDialog.value = true; return; }
   }
   await doSave();
@@ -177,7 +177,7 @@ async function doSave() {
   const wl = Object.values(weather.value).filter(w => w.temperature !== null || w.weather_type_id !== null);
   const el = Object.values(equipment.value).filter(e => e.time_start || e.time_stop || e.note);
   try {
-    await axios.post("/observations/", {
+    await axios.post("observations/", {
       date: selectedDate.value, weather: wl, equipment: el,
       duty_user_ids: dutyUserIds.value, duty_custom: dutyCustom.value,
       change_note: changeNote.value || "Обновление"
@@ -189,7 +189,7 @@ async function doSave() {
 }
 
 async function loadHistory() {
-  const res = await axios.get(`/observations/${selectedDate.value}/history`);
+  const res = await axios.get(`observations/${selectedDate.value}/history`);
   history.value = res.data.versions || [];
 }
 

@@ -109,14 +109,14 @@ async function deleteUser(id) {
 
 async function loadUsers() {
   try {
-    const res = await axios.get("/users/");
+    const res = await axios.get("users/");
     users.value = res.data || [];
   } catch (e) {}
 }
 
 async function loadBackups() {
   try {
-    const res = await axios.get("/admin/backups/");
+    const res = await axios.get("admin/backups/");
     backups.value = res.data.backups || [];
   } catch (e) {}
 }
@@ -126,7 +126,7 @@ async function createUser() {
   error.value = "";
   success.value = "";
   try {
-    await axios.post("/admin/users", {
+    await axios.post("admin/users", {
       username: newUser.value.username,
       password: newUser.value.password,
       full_name: newUser.value.full_name

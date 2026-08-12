@@ -96,7 +96,7 @@ function filterAntennas(item, queryText) {
 }
 
 async function loadRefs() {
-  const res = await axios.get("/api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
+  const res = await axios.get("api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
   grids.value = res.data.equipment_ranges || [];
   antennaList.value = (res.data.antennas || []).map(a => a.code);
 }
@@ -108,7 +108,7 @@ async function loadData() {
   error.value = "";
   success.value = "";
   try {
-    const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}`);
+    const res = await axios.get(`errors-grid/${selectedDate.value}/${selectedGrid.value}`);
     entries.value = res.data.entries.length > 0 ? res.data.entries.map(e => ({ ...e })) : [{ antenna_code: "", error_description: "", is_ok: true }];
     info.value = { created_by: res.data.created_by, version: res.data.version };
     isOk.value = res.data.is_ok !== false;
@@ -125,7 +125,7 @@ async function save() {
   const filtered = entries.value.filter(e => e.antenna_code);
 
   if (info.value.version) {
-    const check = await axios.post("/errors-grid/check-conflicts", {
+    const check = await axios.post("errors-grid/check-conflicts", {
       date: selectedDate.value, grid_id: selectedGrid.value, entries: filtered
     });
     if (check.data.conflict) {
@@ -141,7 +141,7 @@ async function doSave() {
   saving.value = true;
   try {
     const filtered = entries.value.filter(e => e.antenna_code);
-    await axios.post("/errors-grid/", {
+    await axios.post("errors-grid/", {
       date: selectedDate.value, grid_id: selectedGrid.value,
       entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_ok: e.is_ok })),
       change_note: changeNote.value || "Обновление", is_ok: isOk.value
@@ -155,7 +155,7 @@ async function doSave() {
 
 async function loadHistory() {
   try {
-    const res = await axios.get(`/errors-grid/${selectedDate.value}/${selectedGrid.value}/history`);
+    const res = await axios.get(`errors-grid/${selectedDate.value}/${selectedGrid.value}/history`);
     history.value = res.data.versions || [];
   } catch (e) { history.value = []; }
 }
