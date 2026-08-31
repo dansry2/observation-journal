@@ -100,7 +100,7 @@ const backups = ref([]);
 
 async function deleteUser(id) {
   try {
-    await axios.delete(`/admin/users/${id}`);
+    await axios.delete(`admin/users/${id}`);
     await loadUsers();
   } catch (e) {
     error.value = e.response?.data?.detail || "Ошибка удаления";

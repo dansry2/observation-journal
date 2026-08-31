@@ -80,7 +80,11 @@ const showHistory = ref(false);
 const confirmDialog = ref(false);
 const info = ref({});
 const history = ref([]);
-const grids = ref([]);
+const grids = ref([
+  { id: 5, name: "3-6 ГГц" },
+  { id: 6, name: "6-12 ГГц" },
+  { id: 7, name: "12-24 ГГц" },
+]);
 const antennaList = ref([]);
 
 function transliterate(text) {
@@ -97,7 +101,7 @@ function filterAntennas(item, queryText) {
 
 async function loadRefs() {
   const res = await axios.get("api/v1/references", { headers: { "X-API-Key": import.meta.env.VITE_API_KEY || "YOUR_API_KEY_HERE" } });
-  grids.value = res.data.equipment_ranges || [];
+  
   antennaList.value = (res.data.antennas || []).map(a => a.code);
 }
 

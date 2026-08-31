@@ -21,13 +21,13 @@ class HourlyWeather(Base):
     observation_day_id = Column(Integer, ForeignKey("observation_days.id", ondelete="CASCADE"), nullable=False)
     hour = Column(Integer, nullable=False)
     temperature = Column(Float)
-    weather_type_id = Column(Integer, ForeignKey("weather_types.id"))
+    weather_type_id = Column(Integer)
 
 class EquipmentLog(Base):
     __tablename__ = "equipment_logs"
     id = Column(Integer, primary_key=True, index=True)
     observation_day_id = Column(Integer, ForeignKey("observation_days.id", ondelete="CASCADE"), nullable=False)
-    equipment_range_id = Column(Integer, ForeignKey("equipment_ranges.id"), nullable=False)
+    equipment_range_id = Column(Integer, nullable=False)
     time_start = Column(String)
     time_stop = Column(String)
     note = Column(Text)

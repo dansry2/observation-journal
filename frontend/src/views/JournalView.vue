@@ -108,8 +108,25 @@ const dutyCustom = ref("");
 const changeNote = ref("");
 const info = ref({});
 const history = ref([]);
-const weatherTypes = ref([]);
-const equipmentRanges = ref([]);
+const weatherTypes = ref([
+  { id: 1, name: "ясно" },
+  { id: 2, name: "облачно" },
+  { id: 3, name: "дождь" },
+  { id: 4, name: "снег" },
+  { id: 5, name: "туман" },
+  { id: 6, name: "пасмурно" },
+  { id: 7, name: "переменная облачность" },
+  { id: 8, name: "гроза" },
+]);
+const equipmentRanges = ref([
+  { id: 1, name: "4-8 ГГц" },
+  { id: 2, name: "Calisto" },
+  { id: 3, name: "0.05-3 ГГц" },
+  { id: 4, name: "3-24 ГГц" },
+  { id: 5, name: "3-6 ГГц" },
+  { id: 6, name: "6-12 ГГц" },
+  { id: 7, name: "12-24 ГГц" },
+]);
 const users = ref([]);
 
 function initEmpty() {
@@ -133,9 +150,7 @@ async function loadUsers() {
 }
 
 async function loadRefs() {
-  const res = await axios.get("api/v1/references");
-  weatherTypes.value = res.data.weather_types || [];
-  equipmentRanges.value = res.data.equipment_ranges || [];
+  
 }
 
 async function loadData() {

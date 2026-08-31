@@ -4,7 +4,6 @@ from datetime import date
 from ..database import get_db
 from ..models.observation import ObservationDay, HourlyWeather, EquipmentLog, ObservationDuty
 from ..models.error_log import ErrorLogDay, ErrorLogEntry
-from ..models.reference import Antenna, WeatherType, EquipmentRange, UVSlot, UVStatus, FrequencyRange
 
 router = APIRouter(prefix="/api/v1", tags=["external-api"])
 
@@ -56,12 +55,13 @@ def api_notes(date_from: date = Query(...), date_to: date = Query(...), db: Sess
     return [{"date": str(e.date), "title": e.title, "description": e.description} for e in entries]
 
 @router.get("/references")
-def api_references(db: Session = Depends(get_db)):
+def api_references():
+    from ..references import GRID_TO_NAME, WEATHER_TYPES, ANTENNAS
     return {
-        "weather_types": [{"id": w.id, "name": w.name} for w in db.query(WeatherType).all()],
-        "antennas": [{"code": a.code, "frequency_range_id": a.frequency_range_id} for a in db.query(Antenna).order_by(Antenna.code).all()],
-        "equipment_ranges": [{"id": r.id, "name": r.name} for r in db.query(EquipmentRange).all()],
-        "uv_slots": [{"id": s.id, "time": s.slot_time} for s in db.query(UVSlot).all()],
-        "uv_statuses": [{"id": s.id, "text": s.text} for s in db.query(UVStatus).all()],
-        "frequency_ranges": [{"id": f.id, "name": f.name} for f in db.query(FrequencyRange).all()]
+        "weather_types": [{"id": k, "name": v} for k, v in WEATHER_TYPES.items()],
+        "antennas": [{"code": a, "frequency_range_id": None} for a in ANTENNAS],
+        "equipment_ranges": [{"id": k, "name": v} for k, v in GRID_TO_NAME.items()],
+        "uv_slots": [],
+        "uv_statuses": [],
+        "frequency_ranges": []
     }
