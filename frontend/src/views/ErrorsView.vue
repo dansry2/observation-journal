@@ -16,10 +16,12 @@
         <div v-for="(entry, idx) in entries" :key="idx" class="d-flex align-center ga-2 mb-2">
           <v-combobox v-model="entry.antenna_code" :items="antennaList" :custom-filter="filterAntennas" label="Антенна" density="compact" variant="outlined" style="max-width: 150px" hide-details />
           <v-text-field v-model="entry.error_description" label="Заметка" density="compact" variant="outlined" hide-details />
+          <v-text-field v-model="entry.start_time" label="Начало" type="time" density="compact" variant="outlined" style="max-width: 120px" :hint="entry.broken_since ? `Событие с: ${entry.broken_since}` : ``" persistent-hint />
+          <v-text-field v-model="entry.end_time" label="Конец" type="time" density="compact" variant="outlined" style="max-width: 120px" :hint="entry.broken_until ? `Событие до: ${entry.broken_until}` : ``" persistent-hint />
           <v-checkbox v-model="entry.is_ok" label="Исправна" density="compact" hide-details class="ml-2" />
           <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entries.splice(idx, 1)" />
         </div>
-        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '', is_ok: true })">
+        <v-btn variant="outlined" @click="entries.push({ antenna_code: '', error_description: '', is_ok: true, start_time: null, end_time: null })">
           <v-icon class="mr-2">mdi-plus</v-icon> Добавить антенну
         </v-btn>
       </v-card-text>
@@ -147,7 +149,7 @@ async function doSave() {
     const filtered = entries.value.filter(e => e.antenna_code);
     await axios.post("errors-grid/", {
       date: selectedDate.value, grid_id: selectedGrid.value,
-      entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_ok: e.is_ok })),
+      entries: filtered.map(e => ({ antenna_code: e.antenna_code, error_description: e.error_description, is_ok: e.is_ok, start_time: e.start_time, end_time: e.end_time, broken_since: e.broken_since, broken_until: e.broken_until })),
       change_note: changeNote.value || "Обновление", is_ok: isOk.value
     });
     success.value = "Сохранено!";

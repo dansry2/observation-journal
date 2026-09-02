@@ -43,7 +43,7 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
         new_version = active.version + 1
         active.is_active = False
         for e in db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == active.id).all():
-            old_entries[e.antenna_code] = e.error_description
+            old_entries[e.antenna_code] = (e.error_description, e.is_ok, e.start_time, e.end_time)
         db.flush()
 
     day = ErrorLogDay(
@@ -57,12 +57,40 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
 
     new_entries = {}
     for e in (data.entries or []):
-        new_entries[e.antenna_code] = (e.error_description, e.is_ok)
+        new_entries[e.antenna_code] = (e.error_description, e.is_ok, e.start_time, e.end_time)
 
     all_antennas = set(list(old_entries.keys()) + list(new_entries.keys()))
     for code in all_antennas:
-        desc, is_ok = new_entries.get(code, old_entries.get(code, (None, True)))
-        db.add(ErrorLogEntry(error_log_day_id=day.id, antenna_code=code, error_description=desc, is_ok=is_ok))
+        if code in new_entries:
+            desc, is_ok, start_time, end_time = new_entries[code]
+        else:
+            desc, is_ok, start_time, end_time = old_entries.get(code, (None, True, None, None))
+
+        # Если антенна починена и есть открытая поломка - закрываем её
+        if is_ok and end_time:
+            for old_entry in db.query(ErrorLogEntry).join(ErrorLogDay).filter(
+                ErrorLogEntry.antenna_code == code,
+                ErrorLogEntry.is_ok == False,
+                ErrorLogEntry.end_time == None
+            ).all():
+                # Сохраняем оригинальный broken_since
+                original_broken_since = old_entry.broken_since
+                # Обновляем исходную запись: добавляем время конца и дату починки
+                old_entry.end_time = end_time
+                old_entry.broken_until = str(day.date)
+                broken_since = original_broken_since or str(day.date)
+
+        broken_until_value = str(day.date) if is_ok and end_time else None
+        db.add(ErrorLogEntry(
+            error_log_day_id=day.id, 
+            antenna_code=code, 
+            error_description=desc, 
+            is_ok=is_ok, 
+            start_time=start_time, 
+            end_time=end_time, 
+            broken_since=broken_since if 'broken_since' in locals() else str(day.date),
+            broken_until=broken_until_value
+        ))
 
     db.commit()
     db.refresh(day)
@@ -79,8 +107,27 @@ def get_active(obs_date: date, grid_id: int, db: Session = Depends(get_db), curr
         ErrorLogDay.date == obs_date, ErrorLogDay.grid_id == grid_id,
         ErrorLogDay.is_active == True
     ).first()
+    
     if not day:
-        raise HTTPException(status_code=404, detail="Not found")
+        open_entries = _get_open_entries(db, obs_date, grid_id)
+        if not open_entries:
+            raise HTTPException(status_code=404, detail="Not found")
+        day = ErrorLogDay(date=obs_date, grid_id=grid_id, version=0, is_active=True)
+        db.add(day)
+        db.flush()
+        for e in open_entries:
+            broken_date = e.broken_since or str(day.date)
+            db.add(ErrorLogEntry(
+                error_log_day_id=day.id,
+                antenna_code=e.antenna_code,
+                error_description=e.error_description,
+                is_ok=e.is_ok,
+                start_time=e.start_time,
+                end_time=e.end_time,
+                broken_since=broken_date
+            ))
+        db.commit()
+    
     return _build_response(day, db)
 
 @router.get("/{obs_date}/{grid_id}/history", response_model=ErrorLogHistory)
@@ -105,15 +152,48 @@ def get_history(obs_date: date, grid_id: int, db: Session = Depends(get_db), cur
         ))
     return ErrorLogHistory(date=obs_date, grid_id=grid_id, versions=result)
 
+def _get_open_entries(db, date, grid_id):
+    open_entries = db.query(ErrorLogEntry).join(ErrorLogDay).filter(
+        ErrorLogDay.date < date,
+        ErrorLogDay.grid_id == grid_id,
+        ErrorLogDay.is_active == True,
+        ErrorLogEntry.is_ok == False,
+        ErrorLogEntry.end_time == None
+    ).all()
+    return open_entries
+
 def _build_response(day, db):
     entries = db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == day.id).all()
-    creator_name = get_user_name(day.created_by)
-    updater_name = get_user_name(day.updated_by)
+    open_entries = _get_open_entries(db, day.date, day.grid_id)
+
+    # Для каждой антенны берём последнюю запись
+    latest_by_antenna = {}
+    for e in list(entries) + list(open_entries):
+        if e.antenna_code not in latest_by_antenna or e.id > latest_by_antenna[e.antenna_code].id:
+            latest_by_antenna[e.antenna_code] = e
+    unique_entries = list(latest_by_antenna.values())
+
+    entries_result = []
+    for e in unique_entries:
+        entry = {
+            "antenna_code": e.antenna_code,
+            "error_description": e.error_description,
+            "is_ok": e.is_ok,
+            "start_time": e.start_time,
+            "end_time": e.end_time,
+            "broken_since": getattr(e, 'broken_since', None) or str(day.date)
+        }
+        if e.end_time:
+            # Берём дату починки из записи
+            entry["broken_until"] = getattr(e, 'broken_until', None) or str(day.date)
+        if not e.is_ok:
+            entry["broken_since"] = e.broken_since or str(day.date)
+        entries_result.append(entry)
+
     return {
         "id": day.id, "date": day.date, "grid_id": day.grid_id, "version": day.version,
-        "is_ok": day.is_ok,
-        "entries": [{"antenna_code": e.antenna_code, "error_description": e.error_description, "is_ok": e.is_ok} for e in entries],
-        "created_by": creator_name,
-        "updated_by": updater_name,
-        "created_at": str(day.created_at), "change_note": day.change_note
+        "entries": entries_result,
+        "created_at": str(day.created_at), "change_note": day.change_note,
+        "is_ok": day.is_ok
     }
+

@@ -6,6 +6,10 @@ class ErrorEntryItem(BaseModel):
     antenna_code: str
     error_description: Optional[str] = None
     is_ok: bool = True
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    broken_since: Optional[str] = None
+    broken_until: Optional[str] = None
 
 class ErrorLogCreate(BaseModel):
     date: date

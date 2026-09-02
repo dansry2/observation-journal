@@ -23,3 +23,7 @@ class ErrorLogEntry(Base):
     antenna_code = Column(String(10), nullable=False)
     error_description = Column(Text)
     is_ok = Column(Boolean, default=True)
+    start_time = Column(String, nullable=True)
+    end_time = Column(String, nullable=True)
+    broken_since = Column(String, nullable=True)
+    broken_until = Column(String, nullable=True)
