@@ -80,7 +80,7 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
                 old_entry.broken_until = str(day.date)
                 broken_since = original_broken_since or str(day.date)
 
-        broken_until_value = str(day.date) if is_ok and end_time else None
+        broken_until_value = str(day.date) if end_time else None
         db.add(ErrorLogEntry(
             error_log_day_id=day.id, 
             antenna_code=code, 

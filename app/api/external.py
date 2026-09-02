@@ -44,9 +44,9 @@ def api_errors(date_from: date = Query(...), date_to: date = Query(...), db: Ses
         if key not in result:
             result[key] = {"date": str(day.date), "grid_id": day.grid_id, "entries": [], "is_ok": day.is_ok}
         for e in ents:
-            # Если антенна исправна и есть end_time — берём broken_until из даты записи
+            # Если есть end_time — берём broken_until из даты записи
             broken_until = getattr(e, 'broken_until', None)
-            if e.is_ok and e.end_time and not broken_until:
+            if e.end_time and not broken_until:
                 broken_until = str(day.date)
             
             result[key]["entries"].append({
