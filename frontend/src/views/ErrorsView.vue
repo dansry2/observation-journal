@@ -34,7 +34,7 @@
           <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="removeEntry(entry)" />
         </div>
 
-        <div v-for="(ev, evIdx) in entry.nested" :key="evIdx" class="d-flex align-center ga-2 flex-wrap ml-8 mt-2" :style="ev.future ? 'opacity: 0.5' : ''">
+        <div v-for="(ev, evIdx) in entry.nested" :key="ev.id || `new-${evIdx}`" class="d-flex align-center ga-2 flex-wrap ml-8 mt-2" :style="ev.future ? 'opacity: 0.5' : ''">
           <v-icon size="small" :color="ev.future ? 'info' : 'grey'">{{ ev.future ? 'mdi-clock-outline' : 'mdi-subdirectory-arrow-right' }}</v-icon>
           <v-select v-model="ev.eventType" :items="eventTypes" item-title="label" item-value="value" label="Тип" density="compact" variant="outlined" style="max-width: 200px" hide-details />
           <template v-if="ev.eventType === 'other'">
@@ -48,7 +48,7 @@
             <v-text-field v-model="ev.time" type="time" label="Время" density="compact" variant="outlined" style="max-width: 120px" hide-details />
           </template>
           <v-text-field v-model="ev.note" label="Заметка" density="compact" variant="outlined" hide-details style="min-width: 200px; flex: 1" />
-          <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entry.nested.splice(evIdx, 1)" />
+          <v-btn icon="mdi-delete" variant="text" color="error" size="small" @click="entry.nested = entry.nested.filter((_, i) => i !== evIdx)" />
         </div>
       </v-card-text>
     </v-card>

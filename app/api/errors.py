@@ -190,7 +190,24 @@ def check_next_days(obs_date: date, grid_id: int, db: Session = Depends(get_db))
         ErrorLogDay.date > obs_date,
         ErrorLogDay.is_active == True
     ).order_by(ErrorLogDay.date).all()
-    return {"next_dates": [str(d.date) for d in next_days]}
+
+    result = []
+    for day in next_days:
+        entries = db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == day.id).all()
+        has_restore = False
+        for e in entries:
+            if e.events_json:
+                try:
+                    evs = json.loads(e.events_json)
+                    if any(ev.get("type") == "restore" for ev in evs):
+                        has_restore = True
+                        break
+                except Exception:
+                    pass
+        if has_restore:
+            result.append(str(day.date))
+
+    return {"next_dates": result}
 
 
 @router.get("/{obs_date}/{grid_id}", response_model=ErrorLogResponse)
