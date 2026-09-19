@@ -259,7 +259,7 @@ function onTypeChange(entry) {
 function buildEventsFromEntry(entry) {
   const events = [];
   const main = {
-    id: entry.id || `ev-${Math.random().toString(36).substr(2, 9)}`,
+    id: entry.id || null,
     type: entry.eventType,
     note: entry.note || null,
   };
@@ -277,7 +277,7 @@ function buildEventsFromEntry(entry) {
   for (const ev of (entry.nested || [])) {
     if (ev.future) continue;
     const nested = {
-      id: ev.id || `ev-${Math.random().toString(36).substr(2, 9)}`,
+      id: ev.id || null,
       type: ev.eventType,
       note: ev.note || null,
     };

@@ -31,34 +31,45 @@ def check_conflicts(data: ErrorLogCreate, db: Session = Depends(get_db), current
 
 
 def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
+    # Проверяем: есть ли в POST НОВОЕ breakdown/restore (без id)
+    has_new_breakdown_or_restore = False
+    for e in (data.entries or []):
+        if e.events:
+            for ev in e.events:
+                if ev.type in ("breakdown", "restore") and not ev.id:
+                    has_new_breakdown_or_restore = True
+                    break
+            if has_new_breakdown_or_restore:
+                break
+
     active = db.query(ErrorLogDay).filter(
         ErrorLogDay.date == data.date,
         ErrorLogDay.grid_id == data.grid_id,
         ErrorLogDay.is_active == True
     ).first()
 
-    # Деактивируем ВСЕ активные дни этого grid_id (кроме текущего)
-    prev_days = db.query(ErrorLogDay).filter(
-        ErrorLogDay.grid_id == data.grid_id,
-        ErrorLogDay.is_active == True,
-        ErrorLogDay.date != data.date
-    ).all()
-    for pd in prev_days:
-        pd.is_active = False
-    if prev_days:
-        db.flush()
+    # Деактивируем и удаляем future_days только если есть breakdown/restore
+    if has_new_breakdown_or_restore:
+        prev_days = db.query(ErrorLogDay).filter(
+            ErrorLogDay.grid_id == data.grid_id,
+            ErrorLogDay.is_active == True,
+            ErrorLogDay.date != data.date
+        ).all()
+        for pd in prev_days:
+            pd.is_active = False
+        if prev_days:
+            db.flush()
 
-    # Удаляем entries деактивированных дней с датой > текущей (они устарели)
-    future_days = db.query(ErrorLogDay).filter(
-        ErrorLogDay.grid_id == data.grid_id,
-        ErrorLogDay.date > data.date,
-        ErrorLogDay.is_active == False
-    ).all()
-    for fd in future_days:
-        db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == fd.id).delete()
-        db.delete(fd)
-    if future_days:
-        db.flush()
+        future_days = db.query(ErrorLogDay).filter(
+            ErrorLogDay.grid_id == data.grid_id,
+            ErrorLogDay.date > data.date,
+            ErrorLogDay.is_active == False
+        ).all()
+        for fd in future_days:
+            db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == fd.id).delete()
+            db.delete(fd)
+        if future_days:
+            db.flush()
 
     new_version = 1
     old_entries = {}
@@ -357,35 +368,11 @@ def _get_active_events(events):
 
 
 def _get_open_entries(db, date, grid_id):
-    # Активный день — приоритет
-    active_day = db.query(ErrorLogDay).filter(
-        ErrorLogDay.date < date,
-        ErrorLogDay.grid_id == grid_id,
-        ErrorLogDay.is_active == True
-    ).order_by(ErrorLogDay.date.desc()).first()
-
-    if active_day:
-        entries = db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == active_day.id).all()
-        result = []
-        for e in entries:
-            evs = []
-            if e.events_json:
-                try:
-                    evs = json.loads(e.events_json)
-                except Exception:
-                    evs = []
-            active_events = _get_active_events(evs)
-            if not active_events:
-                continue
-
-            result.append(e)
-        return result
-
-    # Нет активного — ищем по всем
+    # Все записи до date, последняя версия каждой антенны
     candidates = db.query(ErrorLogEntry, ErrorLogDay.date).join(ErrorLogDay).filter(
         ErrorLogDay.date < date,
         ErrorLogDay.grid_id == grid_id
-    ).order_by(ErrorLogDay.date.desc(), ErrorLogEntry.id.desc()).all()
+    ).order_by(ErrorLogDay.date.desc(), ErrorLogDay.version.desc(), ErrorLogEntry.id.desc()).all()
 
     latest_by_antenna = {}
     for entry, d in candidates:
@@ -394,15 +381,14 @@ def _get_open_entries(db, date, grid_id):
 
     open_entries = []
     for entry in latest_by_antenna.values():
-        if _has_open_breakdown(entry):
-            events = []
-            if entry.events_json:
-                try:
-                    events = json.loads(entry.events_json)
-                except Exception:
-                    events = []
-            if _get_active_events(events):
-                open_entries.append(entry)
+        events = []
+        if entry.events_json:
+            try:
+                events = json.loads(entry.events_json)
+            except Exception:
+                events = []
+        if _get_active_events(events):
+            open_entries.append(entry)
     return open_entries
 
 
