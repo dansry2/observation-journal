@@ -31,16 +31,50 @@ def check_conflicts(data: ErrorLogCreate, db: Session = Depends(get_db), current
 
 
 def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
-    # Проверяем: есть ли в POST НОВОЕ breakdown/restore (без id)
-    has_new_breakdown_or_restore = False
+    # Проверяем: есть ли в POST НОВОЕ restore (закрытие) — только оно удаляет future
+    has_new_restore = False
+    has_new_other = False
     for e in (data.entries or []):
         if e.events:
             for ev in e.events:
-                if ev.type in ("breakdown", "restore") and not ev.id:
-                    has_new_breakdown_or_restore = True
-                    break
-            if has_new_breakdown_or_restore:
+                if ev.type == "restore" and not ev.id:
+                    has_new_restore = True
+                if ev.type == "other" and not ev.id:
+                    has_new_other = True
+            if has_new_restore and has_new_other:
                 break
+
+    # Проверяем: есть ли future restore (в будущих активных днях)
+    has_future_restore = False
+    future_active_days = db.query(ErrorLogDay).filter(
+        ErrorLogDay.grid_id == data.grid_id,
+        ErrorLogDay.date > data.date,
+        ErrorLogDay.is_active == True
+    ).all()
+    for fd in future_active_days:
+        fd_entries = db.query(ErrorLogEntry).filter(ErrorLogEntry.error_log_day_id == fd.id).all()
+        for fe in fd_entries:
+            if fe.events_json:
+                try:
+                    fe_evs = json.loads(fe.events_json)
+                    if any(ev.get("type") == "restore" for ev in fe_evs):
+                        has_future_restore = True
+                        break
+                except Exception:
+                    pass
+        if has_future_restore:
+            break
+
+    # Активен если:
+    # - есть new restore → всегда active
+    # - есть new other и НЕТ future restore → active
+    # - иначе → не active
+    if has_new_restore:
+        is_active_value = True
+    elif has_new_other and not has_future_restore:
+        is_active_value = True
+    else:
+        is_active_value = False
 
     active = db.query(ErrorLogDay).filter(
         ErrorLogDay.date == data.date,
@@ -49,7 +83,7 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
     ).first()
 
     # Деактивируем и удаляем future_days только если есть breakdown/restore
-    if has_new_breakdown_or_restore:
+    if has_new_restore:
         prev_days = db.query(ErrorLogDay).filter(
             ErrorLogDay.grid_id == data.grid_id,
             ErrorLogDay.is_active == True,
@@ -84,7 +118,8 @@ def _merge_and_create(data: ErrorLogCreate, db: Session, current_user: User):
     day = ErrorLogDay(
         date=data.date, grid_id=data.grid_id, version=new_version,
         is_ok=data.is_ok,
-        is_active=True, change_note=data.change_note,
+        is_active=is_active_value,
+        change_note=data.change_note,
         created_by=current_user.id, updated_by=current_user.id
     )
     db.add(day)
