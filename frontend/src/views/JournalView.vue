@@ -3,7 +3,11 @@
     <div class="d-flex align-center mb-4">
       <h1 class="text-h4">Журнал наблюдений</h1>
       <v-spacer />
-      <v-text-field v-model="selectedDate" type="date" label="Дата" variant="outlined" density="compact" style="max-width: 200px" @change="loadData" />
+      <div class="d-flex align-center">
+        <v-btn icon="mdi-chevron-left" variant="text" density="comfortable" @click="changeDay(-1)" />
+        <v-text-field v-model="selectedDate" type="date" label="Дата" variant="outlined" density="compact" style="max-width: 200px" hide-details @change="loadData" />
+        <v-btn icon="mdi-chevron-right" variant="text" density="comfortable" @click="changeDay(1)" />
+      </div>
     </div>
 
     <v-alert v-if="error" type="error" closable class="mb-4">{{ error }}</v-alert>
@@ -94,6 +98,13 @@ import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
 
 const selectedDate = ref(new Date().toISOString().substr(0, 10));
+
+function changeDay(delta) {
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + delta);
+  selectedDate.value = d.toISOString().substr(0, 10);
+  loadData();
+}
 const loading = ref(true);
 const saving = ref(false);
 const ready = ref(false);

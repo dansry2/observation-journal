@@ -27,3 +27,4 @@ class ErrorLogEntry(Base):
     end_time = Column(String, nullable=True)
     broken_since = Column(String, nullable=True)
     broken_until = Column(String, nullable=True)
+    events_json = Column(Text, nullable=True)

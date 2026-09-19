@@ -2,6 +2,16 @@ from pydantic import BaseModel
 from datetime import date
 from typing import Optional
 
+class AntennaEvent(BaseModel):
+    id: Optional[str] = None
+    type: str
+    date: Optional[str] = None
+    time: Optional[str] = None
+    date_end: Optional[str] = None
+    time_end: Optional[str] = None
+    note: Optional[str] = None
+    future: Optional[bool] = None
+
 class ErrorEntryItem(BaseModel):
     antenna_code: str
     error_description: Optional[str] = None
@@ -10,6 +20,8 @@ class ErrorEntryItem(BaseModel):
     end_time: Optional[str] = None
     broken_since: Optional[str] = None
     broken_until: Optional[str] = None
+    events: Optional[list[AntennaEvent]] = None
+    day_id: Optional[int] = None
 
 class ErrorLogCreate(BaseModel):
     date: date

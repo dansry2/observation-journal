@@ -1,3 +1,4 @@
+import json
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from datetime import date
@@ -49,6 +50,13 @@ def api_errors(date_from: date = Query(...), date_to: date = Query(...), db: Ses
             if e.end_time and not broken_until:
                 broken_until = str(day.date)
             
+            events = None
+            if getattr(e, 'events_json', None):
+                try:
+                    events = json.loads(e.events_json)
+                except Exception:
+                    events = None
+
             result[key]["entries"].append({
                 "antenna": e.antenna_code, 
                 "error": e.error_description, 
@@ -56,7 +64,8 @@ def api_errors(date_from: date = Query(...), date_to: date = Query(...), db: Ses
                 "start_time": e.start_time, 
                 "end_time": e.end_time,
                 "broken_since": getattr(e, 'broken_since', None),
-                "broken_until": broken_until
+                "broken_until": broken_until,
+                "events": events
             })
     return list(result.values())
 

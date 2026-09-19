@@ -6,9 +6,13 @@ from .database import journal_engine, users_engine, JournalBase, UsersBase
 from .models import *
 from .api import auth, observations, errors, external, users, admin, backups
 from .config import settings
+from .migrations import migrate_columns
 
 JournalBase.metadata.create_all(bind=journal_engine)
 UsersBase.metadata.create_all(bind=users_engine)
+
+migrate_columns(journal_engine)
+migrate_columns(users_engine)
 
 app = FastAPI(title="Журнал наблюдений", root_path=settings.SUBPATH)
 

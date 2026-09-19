@@ -34,6 +34,58 @@ const vuetify = createVuetify({
 const BASE_URL = document.querySelector("base")?.getAttribute("href") || "/";
 axios.defaults.baseURL = BASE_URL;
 
+import { useNotificationsStore } from "@/stores/notifications";
+
+function extractErrorMessage(error) {
+  if (!error.response) {
+    return "Нет соединения с сервером";
+  }
+  const data = error.response.data;
+  if (!data) {
+    return `Ошибка ${error.response.status}`;
+  }
+  if (typeof data.detail === "string") {
+    return data.detail;
+  }
+  if (Array.isArray(data.detail)) {
+    return data.detail.map(e => e.msg || JSON.stringify(e)).join("; ");
+  }
+  if (typeof data === "string") {
+    return data;
+  }
+  return JSON.stringify(data);
+}
+
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      localStorage.removeItem("access_token");
+      const base = document.querySelector("base")?.getAttribute("href") || "/";
+      const loginPath = (base.endsWith("/") ? base : base + "/") + "login";
+      if (!window.location.pathname.startsWith(loginPath)) {
+        window.location.href = loginPath;
+      }
+      return Promise.reject(error);
+    }
+
+    const url = error.config?.url || "";
+    const isNotFound = error.response && error.response.status === 404;
+    const isExpected404 = url.includes("errors-grid") || url.includes("observations");
+
+    if (!(isNotFound && isExpected404)) {
+      try {
+        const notifications = useNotificationsStore();
+        notifications.show(extractErrorMessage(error), "error");
+      } catch (e) {
+        console.error("Не удалось показать ошибку:", e);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);

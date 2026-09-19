@@ -21,10 +21,29 @@ const router = createRouter({
   ],
 });
 
+function isTokenExpired(token) {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (!payload.exp) return false;
+    return payload.exp * 1000 < Date.now();
+  } catch (e) {
+    return true;
+  }
+}
+
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem("access_token");
-  if (to.path !== "/login" && !token) {
+  const expired = isTokenExpired(token);
+
+  if (expired && token) {
+    localStorage.removeItem("access_token");
+  }
+
+  if (to.path !== "/login" && (expired || !token)) {
     next("/login");
+  } else if (to.path === "/login" && token && !expired) {
+    next("/journal");
   } else {
     next();
   }
