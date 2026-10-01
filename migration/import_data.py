@@ -6,6 +6,7 @@
 
 Запуск: python3 migration/import_data.py
 """
+import json
 import re
 import sys
 from datetime import date, datetime
@@ -234,33 +235,44 @@ def import_errors_book(path: str):
             antennas = parse_note_for_antennas(note_str, d)
             if antennas:
                 for code, desc in antennas:
+                    events = [
+                        {"id": "ev-import-bd", "type": "breakdown",
+                         "date": str(d), "time": None, "date_end": None,
+                         "time_end": None, "note": desc or ""},
+                        {"id": "ev-import-rs", "type": "restore",
+                         "date": str(d), "time": "23:59", "date_end": None,
+                         "time_end": None, "note": "autoclose on import"},
+                    ]
                     entry = ErrorLogEntry(
                         error_log_day_id=day.id,
                         antenna_code=code,
                         error_description=desc or None,
-                        is_ok=False,
+                        is_ok=True,
                         broken_since=str(d),
-                        events_json=(
-                            '[{"id": "ev-import-1", "type": "breakdown", '
-                            f'"date": "{d}", "time": null, "date_end": null, '
-                            f'"time_end": null, "note": {repr(desc or "")}}}]'
-                        ).replace("'", '"'),
+                        broken_until=str(d),
+                        events_json=json.dumps(events, ensure_ascii=False),
                     )
                     db.add(entry)
                     created_entries += 1
+
             else:
-                # одна запись MULTI
+                # одна запись MULTI (тоже автозакрытие)
+                events = [
+                    {"id": "ev-import-bd", "type": "breakdown",
+                     "date": str(d), "time": None, "date_end": None,
+                     "time_end": None, "note": note_str or ""},
+                    {"id": "ev-import-rs", "type": "restore",
+                     "date": str(d), "time": "23:59", "date_end": None,
+                     "time_end": None, "note": "autoclose on import"},
+                ]
                 entry = ErrorLogEntry(
                     error_log_day_id=day.id,
                     antenna_code="MULTI",
                     error_description=note_str or None,
-                    is_ok=False,
+                    is_ok=True,
                     broken_since=str(d),
-                    events_json=(
-                        '[{"id": "ev-import-1", "type": "breakdown", '
-                        f'"date": "{d}", "time": null, "date_end": null, '
-                        f'"time_end": null, "note": {repr(note_str or "")}}}]'
-                    ).replace("'", '"'),
+                    broken_until=str(d),
+                    events_json=json.dumps(events, ensure_ascii=False),
                 )
                 db.add(entry)
                 created_entries += 1
